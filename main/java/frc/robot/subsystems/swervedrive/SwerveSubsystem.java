@@ -78,6 +78,12 @@ public class SwerveSubsystem extends SubsystemBase
    * Enable vision odometry updates while driving.
    */
   private final boolean visionDriveTest = false;
+  /**
+   * Cached heading vector when the right stick is neutral.
+   */
+  private double lastHeadingX = 0.0;
+  private double lastHeadingY = 1.0;
+  private boolean headingInitialized = false;
 
   /**
    * Initialize {@link SwerveDrive} with the directory provided.
@@ -684,9 +690,27 @@ public class SwerveSubsystem extends SubsystemBase
 
     if (headingXInput == 0 && headingYInput == 0)
     {
-      Rotation2d currentHeading = getHeading();
-      headingXInput = currentHeading.getSin();
-      headingYInput = currentHeading.getCos();
+      if (!headingInitialized)
+      {
+        Rotation2d currentHeading = getHeading();
+        lastHeadingX = currentHeading.getSin();
+        lastHeadingY = currentHeading.getCos();
+        headingInitialized = true;
+      }
+      headingXInput = lastHeadingX;
+      headingYInput = lastHeadingY;
+    }
+    else
+    {
+      double magnitude = Math.hypot(headingXInput, headingYInput);
+      if (magnitude > 1e-6)
+      {
+        headingXInput /= magnitude;
+        headingYInput /= magnitude;
+      }
+      lastHeadingX = headingXInput;
+      lastHeadingY = headingYInput;
+      headingInitialized = true;
     }
     return swerveDrive.swerveController.getTargetSpeeds(scaledInputs.getX(),
                                                         scaledInputs.getY(),
